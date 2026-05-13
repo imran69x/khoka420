@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Panel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #07070f;
+      --surface: rgba(255,255,255,0.04);
+      --surface2: rgba(255,255,255,0.07);
+      --border: rgba(255,255,255,0.08);
+      --accent: #7c3aed;
+      --accent2: #06b6d4;
+      --accent3: #f472b6;
+      --text: #e2e8f0;
+      --muted: rgba(255,255,255,0.35);
+      --success: #10b981;
+      --danger: #ef4444;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ===== LOGIN SCREEN ===== */
+    #login-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(ellipse at 30% 50%, #1e0a3c 0%, #07070f 60%);
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      transition: opacity 0.4s ease;
+    }
+
+    #login-screen.hidden { opacity: 0; pointer-events: none; }
+
+    .login-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 24px;
+      padding: 3rem 2.5rem;
+      width: 100%;
+      max-width: 420px;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 30px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(124,58,237,0.1);
+      animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.85) translateY(20px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .login-logo {
+      width: 56px; height: 56px;
+      background: linear-gradient(135deg, #7c3aed, #06b6d4);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin: 0 auto 1.5rem;
+      box-shadow: 0 0 30px rgba(124,58,237,0.4);
+    }
+
+    .login-title {
+      text-align: center;
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 0.4rem;
+    }
+
+    .login-sub {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 2rem;
+    }
+
+    .form-group { margin-bottom: 1.2rem; }
+
+    .form-label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+    }
+
+    .form-input {
+      width: 100%;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 13px 16px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 1rem;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .form-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(124,58,237,0.2);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 13px 24px;
+      border-radius: 12px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+    }
+
+    .btn:hover { transform: translateY(-2px); }
+    .btn:active { transform: translateY(0); }
+
+    .btn-primary {
+      width: 100%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(124,58,237,0.35);
+    }
+
+    .btn-primary:hover { box-shadow: 0 8px 30px rgba(124,58,237,0.5); }
+
+    .btn-danger {
+      background: rgba(239,68,68,0.15);
+      border: 1px solid rgba(239,68,68,0.3);
+      color: #ef4444;
+    }
+
+    .btn-ghost {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .error-msg {
+      background: rgba(239,68,68,0.12);
+      border: 1px solid rgba(239,68,68,0.25);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 0.88rem;
+      color: #fca5a5;
+      margin-top: 1rem;
+      display: none;
+    }
+
+    /* ===== ADMIN DASHBOARD ===== */
+    #dashboard {
+      display: none;
+      min-height: 100vh;
+    }
+
+    #dashboard.visible { display: block; }
+
+    /* Sidebar */
+    .sidebar {
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      width: 260px;
+      background: rgba(255,255,255,0.03);
+      border-right: 1px solid var(--border);
+      backdrop-filter: blur(20px);
+      padding: 2rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      z-index: 50;
+    }
+
+    .sidebar-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 2.5rem;
+    }
+
+    .sidebar-logo-icon {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, #7c3aed, #06b6d4);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      box-shadow: 0 0 20px rgba(124,58,237,0.3);
+    }
+
+    .sidebar-logo-text { font-size: 1.1rem; font-weight: 700; }
+    .sidebar-logo-sub { font-size: 0.72rem; color: var(--muted); }
+
+    .nav-section { margin-bottom: 2rem; }
+
+    .nav-section-title {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.8rem;
+      padding-left: 8px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--muted);
+      transition: all 0.2s;
+      margin-bottom: 2px;
+    }
+
+    .nav-item:hover { background: var(--surface2); color: var(--text); }
+    .nav-item.active { background: rgba(124,58,237,0.15); color: #c4b5fd; border: 1px solid rgba(124,58,237,0.2); }
+
+    .nav-icon { font-size: 1rem; width: 20px; text-align: center; }
+
+    .sidebar-bottom { margin-top: auto; }
+
+    .logout-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #ef4444;
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.15);
+      width: 100%;
+      font-family: 'Outfit', sans-serif;
+      transition: all 0.2s;
+    }
+
+    .logout-btn:hover { background: rgba(239,68,68,0.15); }
+
+    /* Main content */
+    .main-content {
+      margin-left: 260px;
+      padding: 2.5rem;
+      min-height: 100vh;
+    }
+
+    /* Top bar */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2.5rem;
+    }
+
+    .page-title { font-size: 1.7rem; font-weight: 700; }
+    .page-sub { color: var(--muted); font-size: 0.9rem; margin-top: 3px; }
+
+    .preview-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .preview-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
+
+    /* Cards grid */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 1.8rem;
+      backdrop-filter: blur(10px);
+      transition: border-color 0.2s;
+    }
+
+    .card:hover { border-color: rgba(124,58,237,0.3); }
+
+    .card.full-width { grid-column: 1 / -1; }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 1.5rem;
+    }
+
+    .card-icon {
+      width: 42px; height: 42px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+    }
+
+    .card-icon.purple { background: rgba(124,58,237,0.15); border: 1px solid rgba(124,58,237,0.25); }
+    .card-icon.cyan { background: rgba(6,182,212,0.15); border: 1px solid rgba(6,182,212,0.25); }
+    .card-icon.pink { background: rgba(244,114,182,0.15); border: 1px solid rgba(244,114,182,0.25); }
+
+    .card-title { font-size: 1rem; font-weight: 700; }
+    .card-desc { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+
+    /* Upload zone */
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: 16px;
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s;
+      position: relative;
+    }
+
+    .upload-zone:hover, .upload-zone.dragging {
+      border-color: var(--accent);
+      background: rgba(124,58,237,0.05);
+    }
+
+    .upload-zone input[type=file] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .upload-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+    .upload-title { font-size: 1rem; font-weight: 600; margin-bottom: 0.4rem; }
+    .upload-sub { font-size: 0.82rem; color: var(--muted); }
+
+    /* Image preview */
+    .img-preview {
+      position: relative;
+      border-radius: 16px;
+      overflow: hidden;
+      margin-top: 1rem;
+      display: none;
+    }
+
+    .img-preview.visible { display: block; }
+
+    .img-preview img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      border-radius: 12px;
+    }
+
+    .img-preview-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 0.8rem;
+    }
+
+    /* Toast notification */
+    .toast {
+      position: fixed;
+      top: 2rem;
+      right: 2rem;
+      z-index: 9999;
+      background: rgba(20,20,30,0.95);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      transform: translateX(150%);
+      transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+      max-width: 340px;
+      backdrop-filter: blur(20px);
+    }
+
+    .toast.show { transform: translateX(0); }
+    .toast.success { border-color: rgba(16,185,129,0.3); }
+    .toast.error { border-color: rgba(239,68,68,0.3); }
+    .toast-icon { font-size: 1.2rem; }
+
+    /* Current link display */
+    .current-link {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 0.85rem;
+      color: var(--accent2);
+      word-break: break-all;
+      margin-bottom: 1rem;
+    }
+
+    .current-link-label {
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 0.5rem;
+    }
+
+    @media (max-width: 900px) {
+      .sidebar { width: 220px; }
+      .main-content { margin-left: 220px; }
+      .cards-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 640px) {
+      .sidebar { display: none; }
+      .main-content { margin-left: 0; padding: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== LOGIN SCREEN ===== -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">🔐</div>
+    <h1 class="login-title">Admin Panel</h1>
+    <p class="login-sub">Enter your password to continue</p>
+
+    <form id="login-form">
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <input type="password" id="password" class="form-input" placeholder="Enter admin password" autocomplete="current-password"/>
+      </div>
+      <button type="submit" class="btn btn-primary" id="login-btn">
+        <span>Login to Dashboard</span>
+      </button>
+      <div class="error-msg" id="login-error">❌ Wrong password! Try again.</div>
+    </form>
+  </div>
+</div>
+
+<!-- ===== DASHBOARD ===== -->
+<div id="dashboard">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">⚡</div>
+      <div>
+        <div class="sidebar-logo-text">Admin Panel</div>
+        <div class="sidebar-logo-sub">Site Manager</div>
+      </div>
+    </div>
+
+    <nav class="nav-section">
+      <div class="nav-section-title">Manage</div>
+      <div class="nav-item active" id="nav-home">
+        <span class="nav-icon">🏠</span> Home Page
+      </div>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <button class="logout-btn" id="logout-btn">
+        <span>🚪</span> Logout
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main-content">
+    <div class="top-bar">
+      <div>
+        <div class="page-title">Home Page Settings</div>
+        <div class="page-sub">Customize what visitors see on the home page</div>
+      </div>
+      <a href="/" target="_blank" class="preview-btn">👁 Preview Site</a>
+    </div>
+
+    <div class="cards-grid">
+
+      <!-- Sign Up Link Settings -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon purple">🔗</div>
+          <div>
+            <div class="card-title">Sign Up Redirect Link</div>
+            <div class="card-desc">Where Sign Up button goes</div>
+          </div>
+        </div>
+
+        <div class="current-link-label">Current Link</div>
+        <div class="current-link" id="current-link-display">Loading...</div>
+
+        <form id="link-form">
+          <div class="form-group">
+            <label class="form-label" for="redirect-link">Sign Up URL</label>
+            <input type="url" id="redirect-link" class="form-input" placeholder="https://example.com/register"/>
+          </div>
+          <button type="submit" class="btn btn-primary">💾 Update Sign Up Link</button>
+        </form>
+      </div>
+
+      <!-- Login Link Settings -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.25)">🔑</div>
+          <div>
+            <div class="card-title">Login Link</div>
+            <div class="card-desc">Where Login button goes (green button)</div>
+          </div>
+        </div>
+
+        <div class="current-link-label">Current Login Link</div>
+        <div class="current-link" id="current-login-link-display" style="color:#34d399">Loading...</div>
+
+        <form id="login-link-form">
+          <div class="form-group">
+            <label class="form-label" for="login-link">Login URL</label>
+            <input type="url" id="login-link" class="form-input" placeholder="https://example.com/login"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="login-btn-text-input">Login Button Text</label>
+            <input type="text" id="login-btn-text-input" class="form-input" placeholder="e.g. Login"/>
+          </div>
+          <button type="submit" class="btn btn-primary" style="background:linear-gradient(135deg,#059669,#10b981);box-shadow:0 4px 20px rgba(16,185,129,0.35)">💾 Update Login</button>
+        </form>
+      </div>
+
+      <!-- Text Settings -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon cyan">✏️</div>
+          <div>
+            <div class="card-title">Text Content</div>
+            <div class="card-desc">Update page text & button label</div>
+          </div>
+        </div>
+
+        <form id="text-form">
+          <div class="form-group">
+            <label class="form-label" for="site-name-input">Site Name (Badge)</label>
+            <input type="text" id="site-name-input" class="form-input" placeholder="e.g. MyBrand"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="hero-title-input">Hero Title</label>
+            <input type="text" id="hero-title-input" class="form-input" placeholder="e.g. Join Us Today"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="hero-subtitle-input">Subtitle</label>
+            <input type="text" id="hero-subtitle-input" class="form-input" placeholder="Short description..."/>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="btn-text-input">Button Text</label>
+            <input type="text" id="btn-text-input" class="form-input" placeholder="e.g. Sign Up Now"/>
+          </div>
+          <button type="submit" class="btn btn-primary">💾 Update Text</button>
+        </form>
+      </div>
+
+      <!-- Image Upload -->
+      <div class="card full-width">
+        <div class="card-header">
+          <div class="card-icon pink">🖼️</div>
+          <div>
+            <div class="card-title">Hero Background Image</div>
+            <div class="card-desc">Upload a full-screen background for the home page</div>
+          </div>
+        </div>
+
+        <div class="upload-zone" id="upload-zone">
+          <input type="file" id="image-input" accept="image/*"/>
+          <div class="upload-icon">📤</div>
+          <div class="upload-title">Drop image here or click to browse</div>
+          <div class="upload-sub">JPG, PNG, GIF, WebP — Max 10MB</div>
+        </div>
+
+        <div class="img-preview" id="img-preview">
+          <img id="preview-img" src="" alt="Preview"/>
+          <div class="img-preview-actions">
+            <button class="btn btn-ghost" id="upload-confirm-btn">⬆️ Upload This Image</button>
+            <button class="btn btn-danger" id="remove-image-btn">🗑 Remove Image</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <span class="toast-icon" id="toast-icon">✅</span>
+  <span id="toast-msg">Saved!</span>
+</div>
+
+<script>
+  let selectedFile = null;
+
+  // ===== TOAST =====
+  function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    document.getElementById('toast-msg').textContent = msg;
+    document.getElementById('toast-icon').textContent = type === 'success' ? '✅' : '❌';
+    t.className = `toast ${type} show`;
+    setTimeout(() => t.classList.remove('show'), 3500);
+  }
+
+  // ===== AUTH CHECK =====
+  async function checkAuth() {
+    const res = await fetch('/admin/check');
+    const data = await res.json();
+    if (data.isAdmin) showDashboard();
+  }
+
+  checkAuth();
+
+  // ===== LOGIN =====
+  document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const pwd = document.getElementById('password').value;
+    const btn = document.getElementById('login-btn');
+    btn.textContent = 'Logging in...';
+    btn.disabled = true;
+
+    const res = await fetch('/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pwd })
+    });
+    const data = await res.json();
+    btn.textContent = 'Login to Dashboard';
+    btn.disabled = false;
+
+    if (data.success) {
+      showDashboard();
+    } else {
+      document.getElementById('login-error').style.display = 'block';
+      setTimeout(() => document.getElementById('login-error').style.display = 'none', 3000);
+    }
+  });
+
+  function showDashboard() {
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('dashboard').classList.add('visible');
+    loadCurrentSettings();
+  }
+
+  // ===== LOGOUT =====
+  document.getElementById('logout-btn').addEventListener('click', async () => {
+    await fetch('/admin/logout', { method: 'POST' });
+    document.getElementById('login-screen').classList.remove('hidden');
+    document.getElementById('dashboard').classList.remove('visible');
+    document.getElementById('password').value = '';
+  });
+
+  // ===== LOAD SETTINGS =====
+  async function loadCurrentSettings() {
+    const res = await fetch('/api/settings');
+    const s = await res.json();
+    document.getElementById('current-link-display').textContent = s.redirectLink || '(not set)';
+    document.getElementById('redirect-link').value = s.redirectLink || '';
+    document.getElementById('current-login-link-display').textContent = s.loginLink || '(not set)';
+    document.getElementById('login-link').value = s.loginLink || '';
+    document.getElementById('login-btn-text-input').value = s.loginButtonText || 'Login';
+    document.getElementById('site-name-input').value = s.siteName || '';
+    document.getElementById('hero-title-input').value = s.heroTitle || '';
+    document.getElementById('hero-subtitle-input').value = s.heroSubtitle || '';
+    document.getElementById('btn-text-input').value = s.buttonText || '';
+
+    if (s.heroImage) {
+      document.getElementById('preview-img').src = s.heroImage;
+      document.getElementById('img-preview').classList.add('visible');
+    }
+  }
+
+  // ===== LINK UPDATE =====
+  document.getElementById('link-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const link = document.getElementById('redirect-link').value.trim();
+    if (!link) return;
+
+    const res = await fetch('/admin/update-settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ redirectLink: link })
+    });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('current-link-display').textContent = link;
+      showToast('✅ Redirect link updated!');
+    } else {
+      showToast(data.message || 'Error!', 'error');
+    }
+  });
+
+  // ===== LOGIN LINK UPDATE =====
+  document.getElementById('login-link-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const link = document.getElementById('login-link').value.trim();
+    const btnText = document.getElementById('login-btn-text-input').value.trim();
+
+    const res = await fetch('/admin/update-settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ loginLink: link, loginButtonText: btnText || 'Login' })
+    });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('current-login-link-display').textContent = link || '(not set)';
+      showToast('✅ Login link updated!');
+    } else {
+      showToast(data.message || 'Error!', 'error');
+    }
+  });
+
+  // ===== TEXT UPDATE =====
+  document.getElementById('text-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const payload = {
+      siteName: document.getElementById('site-name-input').value,
+      heroTitle: document.getElementById('hero-title-input').value,
+      heroSubtitle: document.getElementById('hero-subtitle-input').value,
+      buttonText: document.getElementById('btn-text-input').value,
+    };
+
+    const res = await fetch('/admin/update-settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.success) showToast('✅ Text updated!');
+    else showToast(data.message || 'Error!', 'error');
+  });
+
+  // ===== IMAGE UPLOAD =====
+  const uploadZone = document.getElementById('upload-zone');
+  const imageInput = document.getElementById('image-input');
+
+  // Drag & drop
+  uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragging'); });
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragging'));
+  uploadZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadZone.classList.remove('dragging');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) previewFile(file);
+  });
+
+  imageInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) previewFile(file);
+  });
+
+  function previewFile(file) {
+    selectedFile = file;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      document.getElementById('preview-img').src = e.target.result;
+      document.getElementById('img-preview').classList.add('visible');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  document.getElementById('upload-confirm-btn').addEventListener('click', async () => {
+    if (!selectedFile) return showToast('Please select an image first!', 'error');
+    const btn = document.getElementById('upload-confirm-btn');
+    btn.textContent = '⏳ Uploading...';
+    btn.disabled = true;
+
+    const formData = new FormData();
+    formData.append('heroImage', selectedFile);
+
+    const res = await fetch('/admin/upload-image', { method: 'POST', body: formData });
+    const data = await res.json();
+    btn.textContent = '⬆️ Upload This Image';
+    btn.disabled = false;
+
+    if (data.success) {
+      showToast('🖼️ Image uploaded successfully!');
+      document.getElementById('preview-img').src = data.imagePath;
+      selectedFile = null;
+    } else {
+      showToast(data.message || 'Upload failed!', 'error');
+    }
+  });
+
+  // Remove image
+  document.getElementById('remove-image-btn').addEventListener('click', async () => {
+    if (!confirm('Remove the background image?')) return;
+    const res = await fetch('/admin/remove-image', { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('img-preview').classList.remove('visible');
+      document.getElementById('preview-img').src = '';
+      selectedFile = null;
+      showToast('🗑 Image removed!');
+    }
+  });
+</script>
+
+</body>
+</html>
