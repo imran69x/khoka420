@@ -4,6 +4,7 @@ const session = require('express-session');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { kv } = require('@vercel/kv');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -77,28 +78,51 @@ app.use(session({
 }));
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-function readSettings() {
+async function readSettings() {
   try {
+    if (process.env.KV_REST_API_URL) {
+      const data = await kv.get('settings');
+      if (data) return typeof data === 'string' ? JSON.parse(data) : data;
+    }
     return JSON.parse(fs.readFileSync(SETTINGS_PATH, 'utf-8'));
-  } catch {
+  } catch (err) {
+    console.error('Error reading settings:', err);
     return { ...DEFAULT_SETTINGS };
   }
 }
 
-function saveSettings(data) {
-  fs.writeFileSync(SETTINGS_PATH, JSON.stringify(data, null, 2));
+async function saveSettings(data) {
+  try {
+    if (process.env.KV_REST_API_URL) {
+      await kv.set('settings', data);
+    }
+    if (!IS_VERCEL) fs.writeFileSync(SETTINGS_PATH, JSON.stringify(data, null, 2));
+  } catch (err) {
+    console.error('Error saving settings:', err);
+  }
 }
 
-function readUsers() {
+async function readUsers() {
   try {
+    if (process.env.KV_REST_API_URL) {
+      const data = await kv.get('users');
+      if (data) return typeof data === 'string' ? JSON.parse(data) : data;
+    }
     return JSON.parse(fs.readFileSync(USERS_PATH, 'utf-8'));
   } catch {
     return [];
   }
 }
 
-function saveUsers(users) {
-  fs.writeFileSync(USERS_PATH, JSON.stringify(users, null, 2));
+async function saveUsers(users) {
+  try {
+    if (process.env.KV_REST_API_URL) {
+      await kv.set('users', users);
+    }
+    if (!IS_VERCEL) fs.writeFileSync(USERS_PATH, JSON.stringify(users, null, 2));
+  } catch (err) {
+    console.error('Error saving users:', err);
+  }
 }
 
 function getClientIP(req) {
@@ -114,29 +138,30 @@ function isAdmin(req) {
 // ─── Routes ──────────────────────────────────────────────────────────────────
 
 // Public settings API
-app.get('/api/settings', (req, res) => {
-  res.json(readSettings());
+app.get('/api/settings', async (req, res) => {
+  res.json(await readSettings());
 });
 
 // Check if current IP has registered before
-app.get('/api/check-user', (req, res) => {
+app.get('/api/check-user', async (req, res) => {
   const ip   = getClientIP(req);
-  const user = readUsers().find(u => u.ip === ip);
+  const users = await readUsers();
+  const user = users.find(u => u.ip === ip);
   res.json(user ? { registered: true, name: user.name } : { registered: false });
 });
 
 // Register a new user
-app.post('/api/register', (req, res) => {
+app.post('/api/register', async (req, res) => {
   const { name } = req.body;
   if (!name || !name.trim()) return res.json({ success: false, message: 'নাম দিন' });
 
   const ip     = getClientIP(req);
-  const users  = readUsers();
+  const users  = await readUsers();
   const idx    = users.findIndex(u => u.ip === ip);
   const entry  = { ip, name: name.trim(), registeredAt: new Date().toISOString() };
   if (idx !== -1) users[idx] = entry;
   else            users.push(entry);
-  saveUsers(users);
+  await saveUsers(users);
   res.json({ success: true, name: entry.name });
 });
 
@@ -161,10 +186,10 @@ app.post('/admin/logout', (req, res) => {
 app.get('/admin/check', (req, res) => res.json({ isAdmin: isAdmin(req) }));
 
 // Admin: Update settings
-app.post('/admin/update-settings', (req, res) => {
+app.post('/admin/update-settings', async (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ success: false, message: 'Unauthorized' });
 
-  const settings = readSettings();
+  const settings = await readSettings();
   const { redirectLink, siteName, heroTitle, heroSubtitle, buttonText, loginLink, loginButtonText } = req.body;
 
   if (redirectLink    !== undefined) settings.redirectLink    = redirectLink;
@@ -175,18 +200,18 @@ app.post('/admin/update-settings', (req, res) => {
   if (loginLink       !== undefined) settings.loginLink       = loginLink;
   if (loginButtonText !== undefined) settings.loginButtonText = loginButtonText;
 
-  saveSettings(settings);
+  await saveSettings(settings);
   res.json({ success: true, settings });
 });
 
 // Admin: Upload hero image
 app.post('/admin/upload-image', (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ success: false, message: 'Unauthorized' });
-  upload.single('heroImage')(req, res, (err) => {
+  upload.single('heroImage')(req, res, async (err) => {
     if (err)       return res.json({ success: false, message: err.message });
     if (!req.file) return res.json({ success: false, message: 'No file uploaded' });
 
-    const settings = readSettings();
+    const settings = await readSettings();
     if (settings.heroImage) {
       const oldPath = IS_VERCEL
         ? path.join(UPLOADS_DIR, path.basename(settings.heroImage))
@@ -195,7 +220,7 @@ app.post('/admin/upload-image', (req, res) => {
     }
     const imagePath = '/uploads/' + req.file.filename;
     settings.heroImage = imagePath;
-    saveSettings(settings);
+    await saveSettings(settings);
     res.json({ success: true, imagePath });
   });
 });
@@ -210,16 +235,16 @@ if (IS_VERCEL) {
 }
 
 // Admin: Remove hero image
-app.post('/admin/remove-image', (req, res) => {
+app.post('/admin/remove-image', async (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ success: false, message: 'Unauthorized' });
-  const settings = readSettings();
+  const settings = await readSettings();
   if (settings.heroImage) {
     const oldPath = IS_VERCEL
       ? path.join(UPLOADS_DIR, path.basename(settings.heroImage))
       : path.join(__dirname, 'public', settings.heroImage);
     if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
     settings.heroImage = '';
-    saveSettings(settings);
+    await saveSettings(settings);
   }
   res.json({ success: true });
 });
